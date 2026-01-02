@@ -1,0 +1,37 @@
+name: Fixed-RDP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  secure-rdp:
+    runs-on: windows-latest
+    timeout-minutes: 7202
+
+    steps:
+      - name: Configure Core RDP Settings
+        run: |
+          # RDP Enable aur Security Settings
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1 -Force
+          
+          # Firewall Rule
+          netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
+
+      - name: Create RDP User with Your Password
+        run: |
+          $name = "RDP"
+          # Yahan apna pasandida password likhein
+          $password = "+k1U9aR*Q!h;35Xq" 
+          $securePass = ConvertTo-SecureString $password -AsPlainText -Force
+          
+          New-LocalUser -Name $name -Password $securePass -AccountNeverExpires
+          Add-LocalGroupMember -Group "Administrators" -Member $name
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member $name
+          
+          Write-Host "User 'RDP' created successfully."
+
+      - name: Install Tailscale
+        run: |
+          $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
+          
